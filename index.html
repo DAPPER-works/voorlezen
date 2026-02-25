@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Voorlezen</title>
+  <script src="https://cdn.jsdelivr.net/npm/@mozilla/readability@0.5.0/Readability.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #f5f5f7;
+      color: #1d1d1f;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 24px 16px 48px;
+    }
+
+    h1 { font-size: 22px; font-weight: 700; margin-bottom: 24px; }
+
+    .card {
+      background: white;
+      border-radius: 16px;
+      padding: 20px;
+      width: 100%;
+      max-width: 600px;
+      box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+      margin-bottom: 16px;
+    }
+
+    label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #6e6e73;
+      display: block;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .row { display: flex; gap: 8px; align-items: stretch; }
+
+    input[type="url"], input[type="text"], input[type="password"] {
+      flex: 1;
+      border: 1.5px solid #d2d2d7;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      outline: none;
+      background: #f5f5f7;
+      font-family: inherit;
+      transition: border-color 0.2s;
+      min-width: 0;
+    }
+    input:focus { border-color: #0071e3; background: white; }
+
+    button {
+      border: none;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      padding: 12px 18px;
+      transition: opacity 0.15s, transform 0.1s;
+      white-space: nowrap;
+    }
+    button:active { transform: scale(0.97); opacity: 0.85; }
+    button:disabled { opacity: 0.4; cursor: default; }
+
+    .btn-primary { background: #0071e3; color: white; }
+    .btn-secondary { background: #f5f5f7; color: #1d1d1f; }
+    .btn-danger { background: #ff3b30; color: white; }
+
+    select {
+      width: 100%;
+      border: 1.5px solid #d2d2d7;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      background: #f5f5f7;
+      outline: none;
+      font-family: inherit;
+    }
+
+    textarea {
+      width: 100%;
+      border: 1.5px solid #d2d2d7;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 15px;
+      line-height: 1.6;
+      resize: vertical;
+      min-height: 160px;
+      outline: none;
+      font-family: inherit;
+      background: #f5f5f7;
+      transition: border-color 0.2s;
+    }
+    textarea:focus { border-color: #0071e3; background: white; }
+
+    .char-count {
+      text-align: right;
+      font-size: 12px;
+      color: #aeaeb2;
+      margin-top: 6px;
+    }
+
+    .speed-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 4px;
+    }
+    input[type="range"] { flex: 1; accent-color: #0071e3; }
+    .speed-label { font-size: 12px; color: #6e6e73; }
+    .speed-val { font-size: 14px; font-weight: 700; color: #0071e3; min-width: 38px; text-align: right; }
+
+    .btn-play {
+      width: 100%;
+      font-size: 17px;
+      padding: 16px;
+      border-radius: 14px;
+      background: #0071e3;
+      color: white;
+    }
+    .btn-play.playing { background: #ff3b30; }
+
+    .controls-row { display: flex; gap: 8px; }
+    .controls-row button { flex: 1; background: #f5f5f7; color: #1d1d1f; font-size: 15px; padding: 12px; }
+
+    .progress-wrap { background: #e5e5ea; border-radius: 99px; height: 6px; overflow: hidden; }
+    .progress-bar { height: 100%; background: #0071e3; width: 0%; transition: width 0.3s; border-radius: 99px; }
+
+    .current-sentence {
+      font-size: 14px;
+      color: #6e6e73;
+      line-height: 1.5;
+      min-height: 44px;
+      padding: 10px 12px;
+      background: #f5f5f7;
+      border-radius: 10px;
+      font-style: italic;
+    }
+
+    .status { font-size: 13px; color: #aeaeb2; text-align: center; padding-top: 4px; }
+    .status.error { color: #ff3b30; }
+    .status.ok { color: #34c759; }
+
+    .spinner { display: none; font-size: 13px; color: #6e6e73; margin-top: 8px; }
+    .spinner.visible { display: block; }
+
+    .hint {
+      font-size: 12px;
+      color: #aeaeb2;
+      margin-top: 6px;
+      line-height: 1.5;
+    }
+    a { color: #0071e3; }
+
+    .save-btn {
+      display: none;
+      width: 100%;
+      margin-top: 8px;
+      background: #34c759;
+      color: white;
+      font-size: 15px;
+      padding: 13px;
+      border-radius: 12px;
+    }
+    .save-btn.visible { display: block; }
+  </style>
+</head>
+<body>
+
+<h1>🔊 Voorlezen</h1>
+
+<!-- Azure instellingen -->
+<div class="card">
+  <label>Azure Speech API</label>
+  <div class="row" style="margin-bottom:10px;">
+    <input type="password" id="azureKey" placeholder="API Key (bijv. a1b2c3d4e5f6...)" />
+  </div>
+  <div class="row">
+    <select id="azureRegion">
+      <option value="westeurope">West Europe (aanbevolen)</option>
+      <option value="northeurope">North Europe</option>
+      <option value="eastus">East US</option>
+      <option value="westus">West US</option>
+    </select>
+  </div>
+  <div class="hint">
+    Nog geen Azure-account? → <a href="https://azure.microsoft.com/free" target="_blank">azure.microsoft.com/free</a> (gratis, 500.000 tekens/maand)
+  </div>
+</div>
+
+<!-- URL invoer -->
+<div class="card">
+  <label>Webpagina URL (optioneel)</label>
+  <div class="row">
+    <input type="url" id="urlInput" placeholder="https://..." />
+    <button class="btn-primary" onclick="fetchArticle()">Laden</button>
+  </div>
+  <div class="spinner" id="fetchSpinner">⏳ Artikel ophalen...</div>
+</div>
+
+<!-- Tekst -->
+<div class="card">
+  <label>Tekst</label>
+  <textarea id="textInput" placeholder="Plak hier je tekst, of laad een URL hierboven..." oninput="updateCharCount()"></textarea>
+  <div class="char-count"><span id="charCount">0</span> tekens</div>
+</div>
+
+<!-- Stem & snelheid -->
+<div class="card">
+  <label style="margin-bottom:12px;">Stem</label>
+  <select id="voiceSelect">
+    <option value="nl-NL-ColetteNeural">🇳🇱 Colette (vrouw, NL)</option>
+    <option value="nl-NL-FennaNeural">🇳🇱 Fenna (vrouw, NL)</option>
+    <option value="nl-NL-MaartenNeural">🇳🇱 Maarten (man, NL)</option>
+    <option value="nl-BE-DenaNeural">🇧🇪 Dena (vrouw, BE)</option>
+    <option value="nl-BE-ArnaudNeural">🇧🇪 Arnaud (man, BE)</option>
+    <option value="en-GB-SoniaNeural">🇬🇧 Sonia (vrouw, EN)</option>
+    <option value="en-US-JennyNeural">🇺🇸 Jenny (vrouw, EN-US)</option>
+  </select>
+
+  <label style="margin-top:16px;">Snelheid</label>
+  <div class="speed-row">
+    <span class="speed-label">Langzaam</span>
+    <input type="range" id="speedSlider" min="-20" max="30" step="5" value="0"
+      oninput="document.getElementById('speedVal').textContent = (this.value > 0 ? '+' : '') + this.value + '%'" />
+    <span class="speed-label">Snel</span>
+    <span class="speed-val" id="speedVal">+0%</span>
+  </div>
+</div>
+
+<!-- Afspelen -->
+<div class="card" style="display:flex;flex-direction:column;gap:10px;">
+  <div class="current-sentence" id="currentSentence">Voer tekst in of laad een URL om te beginnen.</div>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+
+  <button class="btn-play" id="playBtn" onclick="togglePlay()">▶ Starten</button>
+
+  <div class="controls-row">
+    <button onclick="prevChunk()">⏮ Vorige</button>
+    <button onclick="nextChunk()">Volgende ⏭</button>
+  </div>
+
+  <button class="save-btn" id="saveBtn" onclick="saveMP3()">⬇ Opslaan als MP3</button>
+
+  <div class="status" id="status">Klaar om te starten.</div>
+</div>
+
+<script>
+  // ─── State ───────────────────────────────────────────────
+  const CHUNK_SIZE = 800;
+  let chunks = [];
+  let currentIndex = 0;
+  let isPlaying = false;
+  let audioBuffers = [];   // cached ArrayBuffers per chunk
+  let currentAudio = null;
+
+  // ─── URL Fetch ────────────────────────────────────────────
+  async function fetchArticle() {
+    const url = document.getElementById('urlInput').value.trim();
+    if (!url) { setStatus('Voer een URL in.', 'error'); return; }
+
+    const spinner = document.getElementById('fetchSpinner');
+    spinner.classList.add('visible');
+    setStatus('Artikel ophalen...', '');
+
+    try {
+      const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`;
+      const resp = await fetch(proxyUrl);
+      if (!resp.ok) throw new Error('Netwerkfout');
+      const data = await resp.json();
+
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(data.contents, 'text/html');
+      const base = doc.createElement('base');
+      base.href = url;
+      doc.head.appendChild(base);
+
+      const reader = new Readability(doc);
+      const article = reader.parse();
+
+      if (!article || !article.textContent || article.textContent.trim().length < 50) {
+        throw new Error('Geen leesbare tekst gevonden op deze pagina.');
+      }
+
+      let text = article.textContent
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/[ \t]+/g, ' ')
+        .trim();
+
+      document.getElementById('textInput').value = text;
+      updateCharCount();
+      setStatus(`✓ Geladen: "${article.title || 'Artikel'}"`, 'ok');
+    } catch (e) {
+      setStatus('Kon pagina niet laden: ' + e.message, 'error');
+    } finally {
+      spinner.classList.remove('visible');
+    }
+  }
+
+  document.getElementById('urlInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') fetchArticle();
+  });
+
+  function updateCharCount() {
+    const len = document.getElementById('textInput').value.length;
+    document.getElementById('charCount').textContent = len.toLocaleString('nl-NL');
+    // clear cache when text changes
+    audioBuffers = [];
+    document.getElementById('saveBtn').classList.remove('visible');
+  }
+
+  // ─── Azure TTS ────────────────────────────────────────────
+  async function synthesize(text) {
+    const key    = document.getElementById('azureKey').value.trim();
+    const region = document.getElementById('azureRegion').value;
+    const voice  = document.getElementById('voiceSelect').value;
+    const rate   = document.getElementById('speedSlider').value;
+
+    if (!key) throw new Error('Vul eerst je Azure API key in.');
+
+    const ssml = `<speak version='1.0' xml:lang='nl-NL'>
+      <voice name='${voice}'>
+        <prosody rate='${rate}%'>${escapeXml(text)}</prosody>
+      </voice>
+    </speak>`;
+
+    const resp = await fetch(
+      `https://${region}.tts.speech.microsoft.com/cognitiveservices/v1`,
+      {
+        method: 'POST',
+        headers: {
+          'Ocp-Apim-Subscription-Key': key,
+          'Content-Type': 'application/ssml+xml',
+          'X-Microsoft-OutputFormat': 'audio-48khz-96kbitrate-mono-mp3',
+          'User-Agent': 'VoorlezenApp'
+        },
+        body: ssml
+      }
+    );
+
+    if (!resp.ok) {
+      const err = await resp.text();
+      if (resp.status === 401) throw new Error('Ongeldige API key. Controleer je sleutel en regio.');
+      throw new Error(`Azure fout (${resp.status}): ${err.slice(0, 100)}`);
+    }
+
+    return await resp.arrayBuffer();
+  }
+
+  function escapeXml(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
+  }
+
+  // ─── Chunking ─────────────────────────────────────────────
+  function splitChunks(text) {
+    // Split by sentences first, then group into ~800 char chunks
+    const sentences = text.match(/[^.!?\n]+[.!?\n]+/g) || [text];
+    const result = [];
+    let current = '';
+    for (const s of sentences) {
+      if (current.length + s.length > CHUNK_SIZE && current.length > 0) {
+        result.push(current.trim());
+        current = s;
+      } else {
+        current += ' ' + s;
+      }
+    }
+    if (current.trim()) result.push(current.trim());
+    return result;
+  }
+
+  // ─── Playback ─────────────────────────────────────────────
+  function togglePlay() {
+    if (isPlaying) {
+      pause();
+    } else {
+      startPlaying();
+    }
+  }
+
+  function startPlaying() {
+    const raw = document.getElementById('textInput').value.trim();
+    if (!raw) { setStatus('Geen tekst om voor te lezen.', 'error'); return; }
+
+    chunks = splitChunks(raw);
+    isPlaying = true;
+    document.getElementById('playBtn').textContent = '⏸ Pauzeren';
+    document.getElementById('playBtn').classList.add('playing');
+    playChunk(currentIndex);
+  }
+
+  function pause() {
+    isPlaying = false;
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    document.getElementById('playBtn').textContent = '▶ Hervatten';
+    document.getElementById('playBtn').classList.remove('playing');
+    setStatus('Gepauzeerd.', '');
+  }
+
+  async function playChunk(index) {
+    if (!isPlaying || index >= chunks.length) {
+      if (index >= chunks.length) finish();
+      return;
+    }
+
+    currentIndex = index;
+    updateUI();
+
+    try {
+      let buf = audioBuffers[index];
+      if (!buf) {
+        setStatus(`Laden... (${index + 1}/${chunks.length})`, '');
+        buf = await synthesize(chunks[index]);
+        audioBuffers[index] = buf;
+      }
+
+      if (!isPlaying) return; // paused while loading
+
+      const blob = new Blob([buf], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+      currentAudio = audio;
+
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        if (isPlaying) playChunk(index + 1);
+      };
+      audio.onerror = () => {
+        setStatus('Fout bij afspelen.', 'error');
+        isPlaying = false;
+      };
+
+      await audio.play();
+      setStatus(`Zin ${index + 1} van ${chunks.length}`, '');
+
+    } catch (e) {
+      setStatus('Fout: ' + e.message, 'error');
+      isPlaying = false;
+      document.getElementById('playBtn').textContent = '▶ Starten';
+      document.getElementById('playBtn').classList.remove('playing');
+    }
+  }
+
+  function prevChunk() {
+    if (currentIndex > 0) {
+      if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+      currentIndex--;
+      if (isPlaying) playChunk(currentIndex);
+      else updateUI();
+    }
+  }
+
+  function nextChunk() {
+    if (currentAudio) { currentAudio.pause(); currentAudio = null; }
+    if (currentIndex < chunks.length - 1) {
+      currentIndex++;
+      if (isPlaying) playChunk(currentIndex);
+      else updateUI();
+    }
+  }
+
+  function finish() {
+    isPlaying = false;
+    currentIndex = 0;
+    document.getElementById('playBtn').textContent = '▶ Opnieuw starten';
+    document.getElementById('playBtn').classList.remove('playing');
+    document.getElementById('progressBar').style.width = '100%';
+    document.getElementById('currentSentence').textContent = '✓ Klaar!';
+    setStatus('Voorlezen voltooid.', 'ok');
+    document.getElementById('saveBtn').classList.add('visible');
+  }
+
+  function updateUI() {
+    const pct = chunks.length > 1
+      ? (currentIndex / (chunks.length - 1)) * 100
+      : 100;
+    document.getElementById('progressBar').style.width = pct + '%';
+    document.getElementById('currentSentence').textContent = chunks[currentIndex] || '';
+  }
+
+  function setStatus(msg, type) {
+    const el = document.getElementById('status');
+    el.textContent = msg;
+    el.className = 'status' + (type ? ' ' + type : '');
+  }
+
+  // ─── Save MP3 ─────────────────────────────────────────────
+  async function saveMP3() {
+    setStatus('MP3 voorbereiden...', '');
+    try {
+      // Fetch any missing chunks
+      for (let i = 0; i < chunks.length; i++) {
+        if (!audioBuffers[i]) {
+          setStatus(`Chunk ${i+1}/${chunks.length} laden...`, '');
+          audioBuffers[i] = await synthesize(chunks[i]);
+        }
+      }
+
+      // Combine all ArrayBuffers
+      const total = audioBuffers.reduce((s, b) => s + b.byteLength, 0);
+      const combined = new Uint8Array(total);
+      let offset = 0;
+      for (const buf of audioBuffers) {
+        combined.set(new Uint8Array(buf), offset);
+        offset += buf.byteLength;
+      }
+
+      const blob = new Blob([combined], { type: 'audio/mpeg' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'artikel.mp3';
+      a.click();
+      URL.revokeObjectURL(url);
+      setStatus('✓ MP3 opgeslagen!', 'ok');
+    } catch (e) {
+      setStatus('Fout bij opslaan: ' + e.message, 'error');
+    }
+  }
+</script>
+
+</body>
+</html>
